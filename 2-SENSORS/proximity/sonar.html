@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset=utf-8 />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<style type="text/css">
+    *, *:before, *:after {
+        -moz-box-sizing: border-box;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+    body{
+        width: 100%;
+        height: 100%;
+        background-color: #ffffff;
+    }
+    #container{
+        width: 100%;
+        height: 100%;
+        background-color: #ffffff;
+        padding: 10%;
+    }
+    #block{
+        margin:0 auto;
+        width: 100%;
+        height: 300px;
+        background-color: red;
+    }
+</style>
+
+<title>Sonar Sensor</title>
+
+<script src="js/breakout.js"></script>
+<script src="js/jquery.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+
+    // declare these variables so you don't have
+    // to type the full namespace
+    var IOBoard = BO.IOBoard;
+    var IOBoardEvent = BO.IOBoardEvent;
+    var Pin = BO.Pin;
+    var PinEvent = BO.PinEvent;
+
+    // set to true to print debug messages to console
+    BO.enableDebugging = false; 
+
+    // If you are not serving this file from the same computer
+    // that the Arduino board is connected to, replace
+    // window.location.hostname with the IP address or hostname
+    // of the computer that the Arduino board is connected to.
+    var host = window.location.hostname;
+    // if the file is opened locally, set the host to "localhost"
+    if (window.location.protocol.indexOf("file:") === 0) {
+        host = "localhost";
+    }
+    var arduino = new IOBoard(host, 8887);
+
+    // listen for the IOBoard READY event which indicates the IOBoard
+    // is ready to send and receive data
+    arduino.addEventListener(IOBoardEvent.READY, onReady);
+
+    function onReady(event) {
+        
+        // remove the event listener because it is no longer needed
+        arduino.removeEventListener(IOBoardEvent.READY, onReady);
+
+        // enable the analog pin so we can read its value
+        arduino.enableAnalogPin(0);
+        var sensor = arduino.getAnalogPin(0);
+        sensor.addEventListener(PinEvent.CHANGE, onChange);
+
+    }
+
+    function onChange(evt) {
+
+        var val = evt.target.value;
+        var dist_in = calculateDistance(val);
+        var dist_cm = dist_in * 2.54;
+        var scaled_val = 0;
+
+        // Note that with this sensor, readings from close objects
+        // (less than 6 inches) are not accurate
+        $('#distance_cm').text("Distance = " + dist_cm.toFixed(0) + " cm");
+        $('#distance_in').text("Distance = " + dist_in.toFixed(0) + " in");
+
+        console.log(getScaledValue(dist_in.toFixed(0), 6, 88, 0, 100, 100));
+
+        scaled_val = getScaledValue(dist_in.toFixed(0), 6, 88, 0, 100, 100);
+        $("#block").css({'width': scaled_val+'%'});
+
+    }
+
+    function calculateDistance(val) {
+        var range = 0;
+        var voltageScaling = 5.0/512; // from datasheet
+
+        // from LV-MaxSonar-EZ1 QuickStart Guide:
+        // [(Vm/Vi) = Ri]
+        // Vm = measured voltage (value * 5)
+        // Vi = Volts per Inch
+        // Ri = Range in inches
+        range = (val * 5.0)/voltageScaling;
+
+        return range;
+    }
+
+    function getScaledValue ( val, inMin, inMax, outMin, outMax, limiter ) {
+      var inRange = inMax - inMin;
+      var outRange = outMax - outMin;
+      var normalVal = (val - inMin) / inRange;
+      if (limiter) {
+        normalVal = Math.max(0, Math.min(1, normalVal));
+      }
+      return outRange * normalVal + outMin;
+    }
+
+});
+
+</script>
+
+</head>
+<body>
+
+  <div id="container">
+      <div id="block"></div>
+  </div>
+  
+</body>
+</html>​

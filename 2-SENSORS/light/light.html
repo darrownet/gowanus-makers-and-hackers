@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset=utf-8 />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<style type="text/css">
+    *, *:before, *:after {
+        -moz-box-sizing: border-box;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+    body{
+        width: 100%;
+        height: 100%;
+        background-color: #ffffff;
+    }
+    #container{
+        width: 100%;
+        height: 100%;
+        background-color: #ffffff;
+        padding: 10%;
+    }
+    #block{
+        margin:0 auto;
+        width: 100%;
+        height: 300px;
+        border-radius: 50%;
+        background-color: red;
+    }
+</style>
+
+<title>Sonar Sensor</title>
+
+<script src="js/breakout.js"></script>
+<script src="js/jquery.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+
+    // declare these variables so you don't have
+    // to type the full namespace
+    var IOBoard = BO.IOBoard;
+    var IOBoardEvent = BO.IOBoardEvent;
+    var Pin = BO.Pin;
+    var PinEvent = BO.PinEvent;
+
+    // set to true to print debug messages to console
+    BO.enableDebugging = false; 
+
+    
+    var host = window.location.hostname;
+    // if the file is opened locally, set the host to "localhost"
+    if (window.location.protocol.indexOf("file:") === 0) {
+        host = "localhost";
+    }
+    var arduino = new IOBoard(host, 8887);
+
+    arduino.addEventListener(IOBoardEvent.READY, onReady);
+
+    function onReady(event) {
+        
+        arduino.removeEventListener(IOBoardEvent.READY, onReady);
+
+        arduino.enableAnalogPin(0);
+        var sensor = arduino.getAnalogPin(0);
+        sensor.addEventListener(PinEvent.CHANGE, onChange);
+
+    }
+
+    function onChange(evt) {
+
+        var val = evt.target.value;
+        var scaled_val = 0;
+        scaled_val = getScaledValue(val, 0, 30, 0, 100, 100);
+        console.log(scaled_val);
+        //
+        $("#block").css({'opacity': scaled_val});
+
+    }
+
+    function getScaledValue ( val, inMin, inMax, outMin, outMax, limiter ) {
+      var inRange = inMax - inMin;
+      var outRange = outMax - outMin;
+      var normalVal = (val - inMin) / inRange;
+      if (limiter) {
+        normalVal = Math.max(0, Math.min(1, normalVal));
+      }
+      return outRange * normalVal + outMin;
+    }
+
+});
+
+</script>
+
+</head>
+<body>
+
+  <div id="container">
+      <div id="block"></div>
+  </div>
+  
+</body>
+</html>​
